@@ -91,7 +91,7 @@ public class MemoryManager implements Runnable {
             availableMemory += process.memoryRequired;
             finishedCount++;
             System.out.printf(
-                "[MemMgr] P%d completed. Freed %dMB. Available = %dMB%n",
+                "[MEM-FREE] P%d completed. Freed %dMB. Available = %dMB%n",
                 process.pid, process.memoryRequired, availableMemory);
             memoryLock.notifyAll(); // wake Thread 2
         }

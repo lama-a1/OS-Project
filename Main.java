@@ -13,9 +13,9 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
 
-        System.out.println("============================================================");
+        System.out.println("------------------------------------------------------------");
         System.out.println("CSC 227: Multithreaded CPU Scheduling Simulator");
-        System.out.println("============================================================\n");
+        System.out.println("------------------------------------------------------------\n");
 
         // Count processes before starting
         int totalProcesses = countProcesses("job.txt");

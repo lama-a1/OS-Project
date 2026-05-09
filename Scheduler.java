@@ -354,9 +354,9 @@ public class Scheduler {
     }
 
     private void printGanttChart() {
-        System.out.println("\n============================================================");
+        System.out.println("\n------------------------------------------------------------");
         System.out.println("GANTT CHART");
-        System.out.println("============================================================");
+        System.out.println("------------------------------------------------------------");
 
         if (gantt.isEmpty()) {
             System.out.println("No execution segments.");
@@ -383,9 +383,9 @@ public class Scheduler {
     }
 
     private void printProcessTable(boolean showPriority) {
-        System.out.println("\n============================================================");
+        System.out.println("\n------------------------------------------------------------");
         System.out.println("PROCESS TABLE");
-        System.out.println("============================================================");
+        System.out.println("------------------------------------------------------------");
 
         List<PCB> sorted = new ArrayList<>(allProcesses);
         sorted.sort(Comparator.comparingInt(p -> p.pid));
@@ -420,17 +420,17 @@ public class Scheduler {
         }
         int n = allProcesses.size();
 
-        System.out.println("\n============================================================");
+        System.out.println("\n------------------------------------------------------------");
         System.out.println("PERFORMANCE METRICS");
-        System.out.println("============================================================");
+        System.out.println("------------------------------------------------------------");
         System.out.printf("Average Waiting Time    : %.2f ms%n", totalWait / n);
         System.out.printf("Average Turnaround Time : %.2f ms%n", totalTA   / n);
     }
 
     private void printStarvationReport(List<Integer> starvedIDs) {
-        System.out.println("\n============================================================");
+        System.out.println("\n------------------------------------------------------------");
         System.out.println("STARVATION REPORT");
-        System.out.println("============================================================");
+        System.out.println("------------------------------------------------------------");
 
         if (starvedIDs.isEmpty()) {
             System.out.println("No process suffered from starvation.");
