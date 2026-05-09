@@ -1,11 +1,13 @@
-import java.util.concurrent.BlockingQueue;
-
 /**
  * MemoryManager.java - Thread 2
  *
- * Loads jobs from the job queue to the ready queue only when enough
- * memory is available. It waits until all admitted processes have also
- * completed before terminating.
+ * Takes jobs from the job queue, checks if there is enough memory,
+ * and moves them to the ready queue.
+ *
+ * MEMORY SYNCHRONIZATION:
+ * availableMemory is shared between Thread 2 (decreases it on admission)
+ * and the Main Thread (increases it when a process finishes).
+ * We use 'synchronized(memoryLock)' with wait/notifyAll to coordinate.
  *
  * CSC 227 - Operating Systems Project
  */
@@ -13,18 +15,15 @@ public class MemoryManager implements Runnable {
 
     public static final int TOTAL_MEMORY = 2048;
 
-    private final BlockingQueue<PCB> jobQueue;
-    private final BlockingQueue<PCB> readyQueue;
-    private final Object memoryLock;
+    private final SharedQueues queues;
+    private final Object memoryLock; // shared lock for memory access
 
     private int availableMemory = TOTAL_MEMORY;
-    private int admittedCount = 0;
-    private int finishedCount = 0;
-    private boolean loaderFinished = false;
+    private int admittedCount   = 0; // how many processes entered ready queue
+    private int finishedCount   = 0; // how many processes completed
 
-    public MemoryManager(BlockingQueue<PCB> jobQueue, BlockingQueue<PCB> readyQueue, Object memoryLock) {
-        this.jobQueue = jobQueue;
-        this.readyQueue = readyQueue;
+    public MemoryManager(SharedQueues queues, Object memoryLock) {
+        this.queues     = queues;
         this.memoryLock = memoryLock;
     }
 
@@ -34,34 +33,41 @@ public class MemoryManager implements Runnable {
 
         try {
             while (true) {
-                PCB job = jobQueue.take();
 
-                if (job.pid == -1) {
-                    synchronized (memoryLock) {
-                        loaderFinished = true;
-                        memoryLock.notifyAll();
-                    }
-                    System.out.println("[Thread 2] No more jobs will arrive from Thread 1.");
+                // Take next job — blocks if queue is empty and Thread 1 still running
+                // Returns null when Thread 1 is done and queue is empty
+                PCB job = queues.takeFromJobQueue();
+
+                if (job == null) {
+                    // No more jobs will ever come
+                    System.out.println("[Thread 2] No more jobs from Thread 1.");
                     break;
                 }
 
+                // Wait until there is enough memory for this job
                 synchronized (memoryLock) {
                     while (availableMemory < job.memoryRequired) {
-                        System.out.printf("[Thread 2] Waiting: P%d needs %dMB, available memory = %dMB%n",
-                                job.pid, job.memoryRequired, availableMemory);
-                        memoryLock.wait();
+                        System.out.printf(
+                            "[Thread 2] Waiting: P%d needs %dMB, available = %dMB%n",
+                            job.pid, job.memoryRequired, availableMemory);
+                        memoryLock.wait(); // releases lock and sleeps
                     }
 
+                    // Allocate memory
                     availableMemory -= job.memoryRequired;
                     admittedCount++;
-                    job.state = "ready";
-                    System.out.printf("[Thread 2] P%d admitted to Ready Queue. Used %dMB, available = %dMB%n",
-                            job.pid, job.memoryRequired, availableMemory);
+
+                    System.out.printf(
+                        "[Thread 2] P%d admitted to Ready Queue. Available = %dMB%n",
+                        job.pid, availableMemory);
                 }
 
-                readyQueue.put(job);
+                // Move to ready queue
+                job.state = "ready";
+                queues.addToReadyQueue(job);
             }
 
+            // Wait until ALL admitted processes finish before Thread 2 exits
             synchronized (memoryLock) {
                 while (finishedCount < admittedCount) {
                     memoryLock.wait();
@@ -73,34 +79,28 @@ public class MemoryManager implements Runnable {
             System.err.println("[Thread 2] Interrupted.");
         }
 
-        System.out.println("[Thread 2] Finished: All processes were admitted and completed.");
+        System.out.println("[Thread 2] Finished: All processes admitted and completed.");
     }
 
+    /**
+     * Called by Main Thread (Scheduler) when a process finishes.
+     * Frees memory and wakes Thread 2 if it was waiting for memory.
+     */
     public void freeMemory(PCB process) {
         synchronized (memoryLock) {
             availableMemory += process.memoryRequired;
             finishedCount++;
-            System.out.printf("[MemMgr] P%d completed. Freed %dMB. Available memory = %dMB%n",
-                    process.pid, process.memoryRequired, availableMemory);
-            memoryLock.notifyAll();
+            System.out.printf(
+                "[MemMgr] P%d completed. Freed %dMB. Available = %dMB%n",
+                process.pid, process.memoryRequired, availableMemory);
+            memoryLock.notifyAll(); // wake Thread 2
         }
     }
 
     public int getAvailableMemory() {
-        synchronized (memoryLock) {
-            return availableMemory;
-        }
+    synchronized (memoryLock) {
+        return availableMemory;
     }
+}
 
-    public boolean isLoaderFinished() {
-        synchronized (memoryLock) {
-            return loaderFinished;
-        }
-    }
-
-    public boolean isAllDone() {
-        synchronized (memoryLock) {
-            return loaderFinished && finishedCount == admittedCount;
-        }
-    }
 }
