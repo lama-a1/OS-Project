@@ -1,8 +1,3 @@
-/**
- * PCB.java - Process Control Block
- * Stores all information about a single process.
- * CSC 227 - Operating Systems Project
- */
 public class PCB {
 
     int pid;

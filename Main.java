@@ -1,14 +1,6 @@
 import java.io.*;
 import java.util.Scanner;
 
-/**
- * Main.java - Program Entry Point
- *
- * Creates SharedQueues, starts Thread 1 and Thread 2,
- * then runs the chosen scheduling algorithm on the Main Thread.
- *
- * CSC 227 - Operating Systems Project
- */
 public class Main {
 
     public static void main(String[] args) throws InterruptedException {
@@ -17,22 +9,21 @@ public class Main {
         System.out.println("CSC 227: Multithreaded CPU Scheduling Simulator");
         System.out.println("------------------------------------------------------------\n");
 
-        // Count processes before starting
+        //Count processes before starting
         int totalProcesses = countProcesses("job.txt");
         if (totalProcesses == 0) {
             System.err.println("ERROR: No valid processes found in job.txt.");
             return;
         }
 
-        // Get algorithm choice from user
+        //Get algorithm choice from user
         Scanner scanner = new Scanner(System.in);
         int choice = readChoice(scanner);
-
-        // ── Shared objects ────────────────────────────────────────────────
+      
         SharedQueues queues     = new SharedQueues();   // replaces BlockingQueue
         Object       memoryLock = new Object();         // for memory synchronization
 
-        // ── Create and start threads ──────────────────────────────────────
+        //Create and start threads
         MemoryManager memoryManager = new MemoryManager(queues, memoryLock);
         Thread memoryThread = new Thread(memoryManager, "Thread-2-MemoryManager");
         Thread loaderThread = new Thread(new JobLoader(queues, "job.txt"), "Thread-1-JobLoader");
@@ -40,7 +31,7 @@ public class Main {
         memoryThread.start();
         loaderThread.start();
 
-        // ── Main Thread runs the scheduler ───────────────────────────────
+        // Start the scheduler in the main thread
         Scheduler scheduler = new Scheduler(queues, memoryManager, totalProcesses);
 
         switch (choice) {
@@ -49,11 +40,11 @@ public class Main {
             case 3: scheduler.priorityScheduling(); break;
         }
 
-        // Wait for all threads to finish cleanly
+        //Wait for all threads to finish
         loaderThread.join();
         memoryThread.join();
 
-        Thread.sleep(50); // let remaining thread messages flush
+        Thread.sleep(50); //small delay to ensure all output is printed before final message
 
         System.out.println("\n[Main] Simulation completed. All threads terminated.");
         scanner.close();

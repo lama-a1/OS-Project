@@ -1,14 +1,6 @@
 import java.io.*;
+//Thread 1
 
-/**
- * JobLoader.java - Thread 1
- *
- * Reads job.txt line by line, creates PCB objects,
- * and puts them into the shared job queue.
- * Signals SharedQueues when done so Thread 2 can stop waiting.
- *
- * CSC 227 - Operating Systems Project
- */
 public class JobLoader implements Runnable {
 
     private final SharedQueues queues;
@@ -44,7 +36,7 @@ public class JobLoader implements Runnable {
                     int priority       = Integer.parseInt(info[2].trim());
                     int memoryRequired = Integer.parseInt(parts[1].trim());
 
-                    // Validate values per project requirements
+                    //Validate values
                     if (priority < 1 || priority > 30 || burstTime <= 0 || memoryRequired <= 0) {
                         System.err.println("[Thread 1] Skipping invalid values: " + line);
                         continue;
@@ -52,7 +44,7 @@ public class JobLoader implements Runnable {
 
                     PCB process = new PCB(pid, burstTime, priority, memoryRequired, arrivalOrder);
 
-                    // Add to job queue — SharedQueues handles synchronization
+                    //Add to job queue and wake Thread 2 if it's waiting
                     queues.addToJobQueue(process);
                     System.out.println("[Thread 1] Added to Job Queue: " + process);
 
@@ -69,7 +61,7 @@ public class JobLoader implements Runnable {
             System.err.println("[Thread 1] ERROR reading file: " + e.getMessage());
         }
 
-        // Signal that we are done — Thread 2 will stop waiting
+        //Signal that we are done
         queues.markJobLoadingDone();
 
         System.out.println("[Thread 1] Finished: All jobs inserted into Job Queue.");

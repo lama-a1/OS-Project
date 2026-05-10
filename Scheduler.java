@@ -1,17 +1,6 @@
 import java.util.*;
+//Main Thread CPU Scheduler
 
-/**
- * Scheduler.java - Main Thread CPU Scheduler
- *
- * Implements three scheduling algorithms:
- * 1. Shortest Job First (SJF)
- * 2. Round Robin (q = 5ms)
- * 3. Priority Scheduling with Starvation Detection and Aging
- *
- * Uses SharedQueues instead of BlockingQueue.
- *
- * CSC 227 - Operating Systems Project
- */
 public class Scheduler {
 
     private static final int TIME_QUANTUM          = 5;
@@ -33,15 +22,13 @@ public class Scheduler {
         this.totalProcesses = totalProcesses;
     }
 
-    // =========================================================
-    // ALGORITHM 1: Shortest Job First
-    // =========================================================
+    //Shortest Job First
     public void sjf() {
         System.out.println("\n[Scheduler] Starting Shortest Job First Scheduling...");
 
         List<PCB> readyList = new ArrayList<>();
 
-        // All processes arrive at time 0 — wait for ALL before picking
+        //Wait for ALL processes first
         while (readyList.size() < totalProcesses) {
             collectFromReadyQueue(readyList);
         }
@@ -50,8 +37,8 @@ public class Scheduler {
 
         while (completed < totalProcesses) {
 
-            // Pick the process with shortest burst time
-            // Tie → earlier arrival order wins
+            //Choose the process with shortest burst time
+            //If tie then earlier arrival order wins
             PCB selected = Collections.min(readyList, (a, b) -> {
                 if (a.burstTime != b.burstTime) return a.burstTime - b.burstTime;
                 return a.arrivalOrder - b.arrivalOrder;
@@ -65,14 +52,12 @@ public class Scheduler {
         printAllOutput(false);
     }
 
-    // =========================================================
-    // ALGORITHM 2: Round Robin (q = 5ms)
-    // =========================================================
+    //Round Robin (q = 5ms)
     public void roundRobin() {
     System.out.println("\n[Scheduler] Starting Round Robin Scheduling (q = 5ms)...");
 
-    // Wait for ALL processes first (same as SJF)
-    // Since all arrive at time 0, collect everyone before starting
+    //Wait for all processes first (same as SJF)
+    //Since all arrive at time 0, collect everyone before starting
     LinkedList<PCB> rrQueue = new LinkedList<>();
     while (rrQueue.size() < totalProcesses) {
         collectFromReadyQueue(rrQueue);
@@ -85,7 +70,7 @@ public class Scheduler {
 
     while (completed < totalProcesses) {
 
-        PCB selected = rrQueue.poll(); // take from front
+        PCB selected = rrQueue.poll(); //take from front
         selected.state = "running";
 
         if (!selected.started) {
@@ -112,72 +97,14 @@ public class Scheduler {
             completed++;
         } else {
             selected.state = "ready";
-            rrQueue.add(selected); // back of queue
+            rrQueue.add(selected);
         }
     }
 
     printAllOutput(false);
 }
-    /*public void roundRobin() {
-        System.out.println("\n[Scheduler] Starting Round Robin Scheduling (q = 5ms)...");
 
-        // LinkedList used as a circular queue (add to back, take from front)
-        LinkedList<PCB> rrQueue = new LinkedList<>();
-        int completed = 0;
-
-        while (completed < totalProcesses) {
-
-            // Move any newly arrived processes into the RR queue
-            collectFromReadyQueue(rrQueue);
-
-            if (rrQueue.isEmpty()) {
-                waitForOneProcess(rrQueue); // wait briefly
-                continue;
-            }
-
-            PCB selected = rrQueue.poll(); // take from front
-            selected.state = "running";
-
-            if (!selected.started) {
-                selected.startTime = currentTime;
-                selected.started   = true;
-            }
-
-            int startBurst = selected.remainingBurst;
-            int runTime    = Math.min(TIME_QUANTUM, selected.remainingBurst);
-
-            // Run one ms at a time so we can track waiting for other processes
-            for (int i = 0; i < runTime; i++) {
-                currentTime++;
-                selected.remainingBurst--;
-
-                // Every ms, increment waiting time for all waiting processes
-                for (PCB p : rrQueue) p.waitingInReady++;
-
-                // Check if new processes have arrived
-                collectFromReadyQueue(rrQueue);
-            }
-
-            gantt.add(new GanttEntry(
-                selected.pid,
-                currentTime - runTime, currentTime,
-                startBurst, selected.remainingBurst));
-
-            if (selected.remainingBurst == 0) {
-                finishProcess(selected);
-                completed++;
-            } else {
-                selected.state = "ready";
-                rrQueue.add(selected); // goes to back of queue
-            }
-        }
-
-        printAllOutput(false);
-    }*/
-
-    // =========================================================
-    // ALGORITHM 3: Priority Scheduling with Aging
-    // =========================================================
+    //Priority Scheduling with Aging
     public void priorityScheduling() {
         System.out.println("\n[Scheduler] Starting Priority Scheduling with Aging...");
 
@@ -194,8 +121,8 @@ public class Scheduler {
                 continue;
             }
 
-            // Pick process with lowest priority number (= highest priority)
-            // Tie → earlier arrival order wins
+            //Choose process with lowest priority number
+            //If tie then earlier arrival order wins
             PCB selected = Collections.min(readyList, (a, b) -> {
                 if (a.priority != b.priority) return a.priority - b.priority;
                 return a.arrivalOrder - b.arrivalOrder;
@@ -212,7 +139,7 @@ public class Scheduler {
             int startBurst = selected.remainingBurst;
             int runStart   = currentTime;
 
-            // Run to completion (non-preemptive), applying aging each ms
+            //Run to completion but apply aging every ms
             while (selected.remainingBurst > 0) {
                 currentTime++;
                 selected.remainingBurst--;
@@ -233,9 +160,7 @@ public class Scheduler {
         printStarvationReport(starvedIDs);
     }
 
-    // =========================================================
-    // HELPER: Run a process to full completion (SJF)
-    // =========================================================
+    //Run a process to completion while updating waiting times 
     private void runToCompletion(PCB selected, Collection<PCB> waiting) {
         selected.state = "running";
 
@@ -261,9 +186,7 @@ public class Scheduler {
         finishProcess(selected);
     }
 
-    // =========================================================
-    // HELPER: Mark process as finished, calculate metrics
-    // =========================================================
+    //Mark process as finished, calculate metrics
     private void finishProcess(PCB process) {
         process.state           = "terminated";
         process.terminationTime = currentTime;
@@ -272,11 +195,9 @@ public class Scheduler {
         memoryManager.freeMemory(process);
     }
 
-    // =========================================================
-    // HELPER: Move all available processes from ready queue
-    // =========================================================
+    //Move all available processes from ready queue 
     private void collectFromReadyQueue(Collection<PCB> destination) {
-        // Drain everything currently waiting in the shared ready queue
+        //Empty everything currently waiting in the shared ready queue
         LinkedList<PCB> arrived = queues.drainReadyQueue();
         for (PCB p : arrived) {
             p.state = "ready";
@@ -288,12 +209,10 @@ public class Scheduler {
         }
     }
 
-    // =========================================================
-    // HELPER: Wait briefly for at least one process
-    // =========================================================
+    //Wait for at least one process
     private void waitForOneProcess(Collection<PCB> destination) {
         try {
-            PCB process = queues.pollFromReadyQueue(50); // wait up to 50ms
+            PCB process = queues.pollFromReadyQueue(50);
             if (process != null) {
                 process.state = "ready";
                 destination.add(process);
@@ -307,9 +226,7 @@ public class Scheduler {
         }
     }
 
-    // =========================================================
-    // HELPER: Aging for Priority Scheduling
-    // =========================================================
+    //Aging for Priority Scheduling
     private void applyAging(List<PCB> readyList, List<Integer> starvedIDs) {
         int n = readyList.size();
         if (n == 0) return;
@@ -321,7 +238,7 @@ public class Scheduler {
 
             if (p.waitingInReady > threshold) {
 
-                // Mark as starved (only once)
+                //Mark as starved (only once)
                 if (!p.starved) {
                     p.starved = true;
                     starvedIDs.add(p.pid);
@@ -329,7 +246,7 @@ public class Scheduler {
                             p.pid, p.waitingInReady, threshold);
                 }
 
-                // Every 4ms, boost priority (decrease priority number by 1)
+                //Every 4ms decrease priority by 1 
                 p.agingCounter++;
                 if (p.agingCounter == AGING_INTERVAL) {
                     if (p.priority > 1) {
@@ -343,9 +260,7 @@ public class Scheduler {
         }
     }
 
-    // =========================================================
-    // OUTPUT
-    // =========================================================
+    //Output
 
     private void printAllOutput(boolean showPriority) {
         printGanttChart();

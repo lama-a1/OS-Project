@@ -1,7 +1,3 @@
-/**
- * GanttEntry.java - One segment in the Gantt chart.
- * CSC 227 - Operating Systems Project
- */
 public class GanttEntry {
 
     int pid;
